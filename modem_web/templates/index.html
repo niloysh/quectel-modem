@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Quectel Modem Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+    <div class="max-w-screen-xl mx-auto px-4 py-6">
+        <header class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold">Quectel Modem Dashboard</h1>
+        </header>
+
+        <!-- Serial config -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+            <div class="flex flex-wrap items-center gap-4">
+                <label class="text-sm font-medium">Port:</label>
+                <select id="port" class="px-2 py-1 border rounded"></select>
+
+                <label class="text-sm font-medium">Baud:</label>
+                <select id="baud" class="px-2 py-1 border rounded">
+                    <option>9600</option>
+                    <option>19200</option>
+                    <option>38400</option>
+                    <option selected>115200</option>
+                    <option>230400</option>
+                </select>
+
+                <button onclick="connect()"
+                    class="bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700">Connect</button>
+                <button onclick="disconnect()"
+                    class="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Manual AT input -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+            <form onsubmit="sendAT(event)" class="flex flex-wrap items-center gap-4">
+                <label class="text-sm font-medium">AT Command:</label>
+                <input id="atcmd" class="flex-grow px-2 py-1 border rounded" placeholder="e.g., AT+CSQ">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700">Send</button>
+            </form>
+        </div>
+
+        <!-- Command tabs -->
+        <div class="bg-white p-4 rounded shadow mb-4">
+            <h2 class="text-lg font-semibold mb-2">Command Categories</h2>
+            <div class="flex gap-2 flex-wrap mb-4" id="tabs">
+                {% for category in command_categories %}
+                <button onclick="showTab('{{ category }}')"
+                    class="tab-btn bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded" id="tab-btn-{{ category }}">{{
+                    category }}</button>
+                {% endfor %}
+            </div>
+
+            {% for category, commands in command_categories.items() %}
+            <div class="tab-content hidden" id="tab-{{ category }}">
+                <div class="grid gap-2 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+                    {% for label, (cmd, desc) in commands.items() %}
+                    <button class="bg-gray-100 hover:bg-blue-100 px-3 py-2 rounded text-left text-sm"
+                        title="{{ desc }} ({{ cmd }})" onclick="sendPreset('{{ cmd }}')">
+                        {{ label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Output log -->
+        <div class="bg-black text-green-300 font-mono text-sm p-4 rounded shadow h-64 overflow-y-auto" id="output">
+            <!-- Log lines appear here -->
+        </div>
+
+        <footer class="mt-6 text-center text-sm text-gray-400">
+            &copy; 2025 <a href="https://github.com/niloysh" class="underline hover:text-blue-500" target="_blank">Niloy
+                Saha</a>
+        </footer>
+    </div>
+
+    <script>
+        let currentTab = null;
+
+        function showTab(name) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("bg-white", "border-b-2", "border-blue-500"));
+            const tab = document.getElementById("tab-" + name);
+            const btn = document.getElementById("tab-btn-" + name);
+            if (tab) tab.classList.remove("hidden");
+            if (btn) btn.classList.add("bg-white", "border-b-2", "border-blue-500");
+            currentTab = name;
+        }
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            const res = await fetch("/ports");
+            const ports = await res.json();
+            const portSelect = document.getElementById("port");
+            ports.forEach(p => {
+                const opt = document.createElement("option");
+                opt.value = p;
+                opt.textContent = p;
+                portSelect.appendChild(opt);
+            });
+            const first = document.querySelector(".tab-btn");
+            if (first) first.click();
+        });
+
+        function updateOutput(text, type = "info") {
+            const output = document.getElementById("output");
+            const div = document.createElement("div");
+            div.textContent = text;
+            output.appendChild(div);
+            output.scrollTop = output.scrollHeight;
+        }
+
+        async function connect() {
+            const port = document.getElementById("port").value;
+            const baud = document.getElementById("baud").value;
+            const res = await fetch("/connect", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ port, baud })
+            });
+            updateOutput(await res.text());
+        }
+
+        async function disconnect() {
+            const res = await fetch("/disconnect", { method: "POST" });
+            updateOutput(await res.text());
+        }
+
+        async function sendAT(e) {
+            e.preventDefault();
+            const cmd = document.getElementById("atcmd").value;
+            if (!cmd) return;
+            const res = await fetch("/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cmd })
+            });
+            const result = await res.text();
+            updateOutput("> " + cmd, "command");
+            updateOutput(result, "info");
+        }
+
+        async function sendPreset(cmd) {
+            const res = await fetch("/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ cmd })
+            });
+            const result = await res.text();
+            updateOutput("> " + cmd, "command");
+            updateOutput(result, "info");
+        }
+    </script>
+</body>
+
+</html>
