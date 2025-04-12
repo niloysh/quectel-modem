@@ -10,7 +10,6 @@ ser = None
 COMMAND_CATEGORIES = {
     "Signal & Radio": {
         "Signal Strength": ("AT+CSQ", "Check RSSI and BER"),
-        "Extended Signal": ("AT+CESQ", "Detailed signal quality values (RSRP, RSRQ, SINR)"),
         "Serving Cell": ('AT+QENG="servingcell"', "Get current serving cell info"),
         "Neighbour Cells": ('AT+QENG="neighbourcell"', "Get neighbor cell measurements"),
         "Band Info": ("AT+QNWINFO", "Radio Access Technology and Band"),
@@ -20,7 +19,7 @@ COMMAND_CATEGORIES = {
         "ICCID": ("AT+QCCID", "Get SIM card serial number"),
         "IMSI": ("AT+CIMI", "Get subscriber identity"),
         "Operator": ("AT+COPS?", "Current network operator"),
-        "Registration": ("AT+CREG?", "Network registration status"),
+        "Registration": ("AT+CEREG?", "Network registration status"),
     },
     "PDP & IP": {
         "IP Info": ("AT+CGPADDR=1", "Current IP address from PDP context 1"),
@@ -83,6 +82,12 @@ def send():
         return resp
     except Exception as e:
         return f"✖ Error sending command: {e}"
+
+
+@app.route("/connection-status")
+def connection_status():
+    global ser
+    return jsonify({"connected": ser is not None})
 
 
 if __name__ == "__main__":
