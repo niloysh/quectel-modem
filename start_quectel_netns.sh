@@ -2,8 +2,8 @@
 
 MODEM_IF="wwan0"
 NS="qmodem"
-APN="internet"
-QUECTEL_CM="/home/niloysh/quectel-modem/quectel-CM/quectel-CM"
+APN="rogerswpn.apn"
+QUECTEL_CM="quectel-modem/quectel-CM/quectel-CM"
 
 # Step 1: Create the namespace if it doesn't exist
 if ! ip netns list | grep -q "$NS"; then

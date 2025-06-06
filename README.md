@@ -13,6 +13,16 @@ minicom -D /dev/ttyUSB2 -b 115200
 Replace `/dev/ttyUSB2` with the appropriate device file for your modem. You can find the correct device file by running `ls /dev/ttyUSB*` before and after plugging in the modem.
 
 **Note** An easier way is to use the `modem_web.py` script, which provides a web interface for sending AT commands. 
+
+### Using the Web Interface
+Before using the web interface, ensure you have `flask` and `pyserial` installed. Also create and populate a `.env` file with the following content:
+
+```
+DASHBOARD_USERNAME=<your_username>
+DASHBOARD_PASSWORD=<your_password>
+FLASK_SECRET_KEY=<your_secret_key>
+```
+
 You can run the script using the following command:
 
 ```bash
@@ -25,7 +35,7 @@ This will start a web server on port 5000. You can access the web interface by n
 
 Use `start_quectel_netns.sh`. This will create a network namespace `qmodem` and move wwan0 to it. Then we run `quectel-CM` in the namespace. This avoids the situtation where the modem replaces the default route with the wwan0 interface, which can cause issues with SSH.
 
-You can then use `ip netns exec qmodem` or `start_netns_shell.sh` to run commands in the namespace. You can change the default apn in `start_quectel_netns.sh` to your provider's apn. The default is `internet` which works for most providers. You can also set the APN using the `AT+CGDCONT` command in the `modem_web.py` script.
+You can then use `ip netns exec qmodem` or `start_netns_shell.sh` to run commands in the namespace. You can change the default apn in `start_quectel_netns.sh` to your provider's apn. The default is `rogerswpn.apn`. You can also set the APN using the `AT+CGDCONT` command in the `modem_web.py` script.
 
 ### Troubleshooting
 

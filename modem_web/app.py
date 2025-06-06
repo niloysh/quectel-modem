@@ -1,10 +1,33 @@
 from flask import Flask, render_template, request, jsonify
+from flask import redirect, url_for, session
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import serial
 import time
 import os
 import glob
 
 app = Flask(__name__, template_folder="templates")
+
+USERNAME = os.getenv("DASHBOARD_USERNAME")
+PASSWORD = os.getenv("DASHBOARD_PASSWORD")
+app.secret_key = os.getenv("FLASK_SECRET_KEY")
+
+from functools import wraps
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+
+    return decorated
+
+
 ser = None
 
 COMMAND_CATEGORIES = {
@@ -36,17 +59,37 @@ COMMAND_CATEGORIES = {
 
 
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html", command_categories=COMMAND_CATEGORIES)
 
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        else:
+            return render_template("login.html", invalid=True)
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+
 @app.route("/ports")
+@login_required
 def list_ports():
     ports = glob.glob("/dev/ttyUSB*") + glob.glob("/dev/ttyACM*")
     return jsonify(ports)
 
 
 @app.route("/connect", methods=["POST"])
+@login_required
 def connect():
     global ser
     port = request.json.get("port")
@@ -59,6 +102,7 @@ def connect():
 
 
 @app.route("/disconnect", methods=["POST"])
+@login_required
 def disconnect():
     global ser
     if ser:
@@ -69,6 +113,7 @@ def disconnect():
 
 
 @app.route("/send", methods=["POST"])
+@login_required
 def send():
     global ser
     if not ser:
@@ -85,6 +130,7 @@ def send():
 
 
 @app.route("/connection-status")
+@login_required
 def connection_status():
     global ser
     return jsonify({"connected": ser is not None})
